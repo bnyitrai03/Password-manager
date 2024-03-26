@@ -1,0 +1,7 @@
+../FATFS/App/fatfs.c:45:6:MX_FATFS_Init	3
+../FATFS/App/fatfs.c:89:7:get_fattime	1
+../FATFS/App/fatfs.c:98:9:Fat_Write	6
+../FATFS/App/fatfs.c:117:9:Fat_Write_Init	4
+../FATFS/App/fatfs.c:131:9:Fat_Read	3
+../FATFS/App/fatfs.c:146:6:Flash_Read_Init	6
+../FATFS/App/fatfs.c:172:19:Flash_Write	9

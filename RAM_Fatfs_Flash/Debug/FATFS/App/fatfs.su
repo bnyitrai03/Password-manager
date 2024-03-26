@@ -1,0 +1,7 @@
+../FATFS/App/fatfs.c:45:6:MX_FATFS_Init	528	static
+../FATFS/App/fatfs.c:89:7:get_fattime	4	static
+../FATFS/App/fatfs.c:98:9:Fat_Write	40	static
+../FATFS/App/fatfs.c:117:9:Fat_Write_Init	40	static
+../FATFS/App/fatfs.c:131:9:Fat_Read	32	static
+../FATFS/App/fatfs.c:146:6:Flash_Read_Init	552	static
+../FATFS/App/fatfs.c:172:19:Flash_Write	640	static
