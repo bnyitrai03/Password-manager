@@ -93,10 +93,10 @@ int main(void)
 	uint8_t wtext2[512] = "Neptun2.txt_R1RDBL_TAB_0000_ENTER";
 	uint8_t rtext[512] = { 0 };
 	uint8_t rtext2[512] = { 0 };
-	Fat_Write("Neptun.txt", wtext, 512);
-	Fat_Write("Neptun2.txt", wtext2, 512);
-	Fat_Read("Neptun.txt", rtext, 512);
-	Fat_Read("Neptun2.txt", rtext2, 512);
+	Fat_Write("Neptun.txt", wtext);
+	Fat_Write("Neptun2.txt", wtext2);
+	Fat_Read("Neptun.txt", rtext);
+	Fat_Read("Neptun2.txt", rtext2);
 
 	/* USER CODE END 2 */
 

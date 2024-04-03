@@ -64,8 +64,8 @@ all: main-build
 main-build: RAM_fat_fs.elf secondary-outputs
 
 # Tool invocations
-RAM_fat_fs.elf RAM_fat_fs.map: $(OBJS) $(USER_OBJS) C:\Users\Bence\Desktop\Password-manager\RAM_Fat\RAM_fat_fs\STM32F407VGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "RAM_fat_fs.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Bence\Desktop\Password-manager\RAM_Fat\RAM_fat_fs\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="RAM_fat_fs.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+RAM_fat_fs.elf RAM_fat_fs.map: $(OBJS) $(USER_OBJS) E:\EGYETEM\Onlab\RAM_Fatfs_Flash\STM32F407VGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "RAM_fat_fs.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"E:\EGYETEM\Onlab\RAM_Fatfs_Flash\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="RAM_fat_fs.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
