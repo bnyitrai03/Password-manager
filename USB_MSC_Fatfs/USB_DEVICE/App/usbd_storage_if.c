@@ -23,6 +23,7 @@
 
 /* USER CODE BEGIN INCLUDE */
 #include "fatfs.h"
+#include "user_diskio.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -63,11 +64,10 @@
   */
 
 #define STORAGE_LUN_NBR                  1
-#define STORAGE_BLK_NBR                  192 // number of sectors in Fatfs
-#define STORAGE_BLK_SIZ                  512
+#define STORAGE_BLK_NBR                  192
+#define STORAGE_BLK_SIZ                  0x200
 
 /* USER CODE BEGIN PRIVATE_DEFINES */
-
 /* USER CODE END PRIVATE_DEFINES */
 
 /**
@@ -113,7 +113,7 @@ const int8_t STORAGE_Inquirydata_FS[] = {/* 36 */
 /* USER CODE END INQUIRY_DATA_FS */
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
-
+static int fat_changed = 0;
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -194,14 +194,14 @@ int8_t STORAGE_Init_FS(uint8_t lun)
   */
 int8_t STORAGE_GetCapacity_FS(uint8_t lun, uint32_t *block_num, uint16_t *block_size)
 {
-	/* USER CODE BEGIN 3 */
+  /* USER CODE BEGIN 3 */
 	UNUSED(lun);
 
 	*block_num = STORAGE_BLK_NBR;
     *block_size = STORAGE_BLK_SIZ;
 
 	return (USBD_OK);
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
@@ -209,14 +209,15 @@ int8_t STORAGE_GetCapacity_FS(uint8_t lun, uint32_t *block_num, uint16_t *block_
   * @param  lun:  Logical unit number.
   * @retval USBD_OK if all operations are OK else USBD_FAIL
   */
-int8_t STORAGE_IsReady_FS(uint8_t lun) {
-	/* USER CODE BEGIN 4 */
+int8_t STORAGE_IsReady_FS(uint8_t lun)
+{
+  /* USER CODE BEGIN 4 */
 	UNUSED(lun);
 	if (!(FLASH->SR & FLASH_FLAG_BSY)) // if the flash isn't busy
-		return (USBD_OK);
+		return USBD_OK;
 
-	return (USBD_FAIL);
-	/* USER CODE END 4 */
+	return USBD_FAIL;
+  /* USER CODE END 4 */
 }
 
 /**
@@ -245,11 +246,11 @@ int8_t STORAGE_Read_FS(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16_t bl
 {
   /* USER CODE BEGIN 6 */
   UNUSED(lun);
-  UNUSED(buf);
-  UNUSED(blk_addr);
-  UNUSED(blk_len);
 
-  return (USBD_OK);
+  if( USER_read(lun, buf, blk_addr, blk_len) != RES_OK)
+	  return USBD_FAIL;
+  //memcpy(buf, (const void*) (RAM_START + (blk_addr * SECTOR_SIZE)), (blk_len * SECTOR_SIZE));
+  return USBD_OK;
   /* USER CODE END 6 */
 }
 
@@ -263,14 +264,36 @@ int8_t STORAGE_Read_FS(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16_t bl
   */
 int8_t STORAGE_Write_FS(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16_t blk_len)
 {
-  /* USER CODE BEGIN 7 */
-  UNUSED(lun);
-  UNUSED(buf);
-  UNUSED(blk_addr);
-  UNUSED(blk_len);
+	/* USER CODE BEGIN 7 */
+	uint8_t file[4] = {};     // checks whether we wrote a file in Fatfs
+	const uint8_t txt[] = ".txt";   // if file = txt then Fatfs has changed
+	uint8_t name_char = 0;
+	uint8_t filename[13] = {};
+	UNUSED(lun);
 
-  return (USBD_OK);
-  /* USER CODE END 7 */
+	if(USER_write(lun, buf, blk_addr, blk_len) != RES_OK) // writes to RAM Fatfs
+		return USBD_FAIL;
+
+	// file starts with filename, after the name comes a ".txt"
+	for (uint8_t i = 3; i < 13; i++) {
+		file[0] = buf[i - 3];
+		file[1] = buf[i - 2];
+		file[2] = buf[i - 1];
+		file[3] = buf[i];
+		if (!memcmp(txt, file, 4)) { // if there isn't a ".txt" in file, there weren't any changes in the Fatfs
+			for (uint8_t *c = buf; *c != '.'; c++) { // copying the file name from buf
+				filename[name_char] = buf[name_char];
+				name_char++;
+			}
+			if (Fat_Write((strcat(filename, ".txt")), buf) != FR_OK) // saves to Fatfs and Flash
+				return USBD_FAIL;
+			else
+				return USBD_OK;
+		}
+	}
+
+	return USBD_OK;
+	/* USER CODE END 7 */
 }
 
 /**
