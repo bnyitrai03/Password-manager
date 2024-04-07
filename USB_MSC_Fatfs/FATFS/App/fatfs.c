@@ -17,7 +17,6 @@
   */
 /* USER CODE END Header */
 #include "fatfs.h"
-#include <string.h>
 
 uint8_t retUSER;    /* Return value for USER */
 char USERPath[4];   /* USER logical drive path */
@@ -196,15 +195,15 @@ HAL_StatusTypeDef Verify_Sector(uint8_t *seqnum10, uint8_t *seqnum11, uint32_t *
 	if (checksum != verificationsum) {     // if the checksum doesn't match
 		if (*ACTIVE_SECTOR == SECTOR_11) {
 			*ACTIVE_SECTOR = SECTOR_10;    // the other sector is active
-			if (HAL_FLASH_Unlock() != HAL_OK) { return RES_ERROR; }
+			if (HAL_FLASH_Unlock() != HAL_OK) { return HAL_ERROR; }
 			if (Write_Seqnum(11, (*seqnum10)-1) != HAL_OK) // correcting the sequence numbers to be adjacent
-				return RES_ERROR;
+				return HAL_ERROR;
 
 		} else if (*ACTIVE_SECTOR == SECTOR_10) {
 			*ACTIVE_SECTOR = SECTOR_11;
-			if (HAL_FLASH_Unlock() != HAL_OK) { return RES_ERROR; }
+			if (HAL_FLASH_Unlock() != HAL_OK) { return HAL_ERROR; }
 			if (Write_Seqnum(10, (*seqnum11)-1) != HAL_OK) // correcting the sequence numbers to be adjacent
-				return RES_ERROR;
+				return HAL_ERROR;
 		}
 	}
 	return HAL_OK;
@@ -243,7 +242,7 @@ HAL_StatusTypeDef Flash_Write() {
 	uint8_t seqnum10;
 	uint8_t seqnum11;
 	uint32_t ACTIVE_SECTOR;
-	HAL_StatusTypeDef ret = HAL_OK;
+	HAL_StatusTypeDef ret = HAL_ERROR;
 
 	// deciding which sector to write first
 	memcpy(&seqnum11, (const void*) SEQUENCE_NUM_SECTOR_11, 1);
@@ -291,6 +290,11 @@ HAL_StatusTypeDef Flash_Write_Sector10(uint8_t *sector, uint8_t *seqnum10) {
 			filestatus = f_readdir(&dir, &fileinfo); /* Read a directory item */
 			if (filestatus != FR_OK || fileinfo.fname[0] == 0)
 				break; /* Break on error or end of dir */
+			if(!strcmp(fileinfo.fname,"SYSTEM~1")){ // Fatfs is empty at the start
+				j--;
+				continue;
+			}
+
 			if (Fat_Read(fileinfo.fname, (void*) sector) != FR_OK)
 				break;
 
@@ -348,8 +352,14 @@ HAL_StatusTypeDef Flash_Write_Sector11(uint8_t *sector, uint8_t *seqnum11){
 			filestatus = f_readdir(&dir, &fileinfo); /* Read a directory item */
 			if (filestatus != FR_OK || fileinfo.fname[0] == 0)
 				break; /* Break on error or end of dir */
-			if (Fat_Read(fileinfo.fname, (void*) sector) != FR_OK)
-				break;
+			if (!strcmp(fileinfo.fname, "SYSTEM~1")) // Fatfs is empty at the start
+				if (f_unlink("SYSTEM~1") != FR_OK) {
+					j--;
+					continue;
+				}
+
+			if (ret=(Fat_Read(fileinfo.fname, (void*) sector)) != FR_OK)
+				return ret;
 
 			for (uint32_t i = 0; i < RECORD; i++) { //Write one record to the Flash, one cycle writes a byte, so 512 cycles for a whole record
 				ret = HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE,

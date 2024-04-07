@@ -148,7 +148,7 @@ DRESULT USER_write (
   /* USER CODE BEGIN WRITE */
   /* USER CODE HERE */
 
-	 memcpy((const void*) (RAM_START + (sector * SECTOR_SIZE)), buff, count * SECTOR_SIZE);
+	 memcpy((void*) (RAM_START + (sector * SECTOR_SIZE)), buff, count * SECTOR_SIZE);
 
     return RES_OK;
   /* USER CODE END WRITE */
