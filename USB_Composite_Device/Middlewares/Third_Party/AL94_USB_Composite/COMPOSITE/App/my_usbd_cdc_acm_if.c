@@ -20,7 +20,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include "usbd_cdc_acm_if.h"
+#include "my_usbd_cdc_acm_if.h"
 
 /* USER CODE BEGIN INCLUDE */
 //#include "usart.h"
@@ -90,8 +90,12 @@
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
 
-#define APP_RX_DATA_SIZE 128
-#define APP_TX_DATA_SIZE 128
+#define APP_RX_DATA_SIZE 64
+#define APP_TX_DATA_SIZE 64
+
+uint8_t message = 0;
+uint8_t usb_RX_Buff [APP_TX_DATA_SIZE] = {};
+uint8_t usb_TX_Buff[APP_TX_DATA_SIZE] = {};
 
 /** RX buffer for USB */
 uint8_t RX_Buffer[NUMBER_OF_CDC][APP_RX_DATA_SIZE];
@@ -100,6 +104,13 @@ uint8_t RX_Buffer[NUMBER_OF_CDC][APP_RX_DATA_SIZE];
 uint8_t TX_Buffer[NUMBER_OF_CDC][APP_TX_DATA_SIZE];
 
 USBD_CDC_ACM_LineCodingTypeDef Line_Coding[NUMBER_OF_CDC];
+
+/*
+Line_Coding[0].bitrate = 115200;
+Line_Coding[0].format = 0;
+Line_Coding[0].paritytype = 0;
+Line_Coding[0].datatype = 8;
+*/
 
 uint32_t Write_Index[NUMBER_OF_CDC]; /* keep track of received data over UART */
 uint32_t Read_Index[NUMBER_OF_CDC];  /* keep track of sent data to USB */
@@ -288,6 +299,7 @@ static int8_t CDC_Init(uint8_t cdc_ch)
 
   /* ##-1- Set Application Buffers */
   USBD_CDC_SetRxBuffer(cdc_ch, &hUsbDevice, RX_Buffer[cdc_ch]);
+  //USBD_CDC_SetTxBuffer(cdc_ch, &hUsbDevice, TX_Buffer[cdc_ch], APP_TX_DATA_SIZE);
 
   //  /*##-2- Start the TIM Base generation in interrupt mode ####################*/
   //  /* Start Channel1 */
@@ -422,10 +434,15 @@ static int8_t CDC_Receive(uint8_t cdc_ch, uint8_t *Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
   //HAL_UART_Transmit_DMA(CDC_CH_To_UART_Handle(cdc_ch), Buf, *Len);
-  CDC_Transmit(cdc_ch, Buf, *Len); // echo back on same channel
+  message = 1; // signal the arrival of a user controll message
 
   USBD_CDC_SetRxBuffer(cdc_ch, &hUsbDevice, &Buf[0]);
   USBD_CDC_ReceivePacket(cdc_ch, &hUsbDevice);
+
+  memset(usb_RX_Buff, '\0', 64);
+  memcpy(usb_RX_Buff, Buf, *Len);
+  memset(Buf, '\0', 64);
+
   return (USBD_OK);
   /* USER CODE END 6 */
 }
