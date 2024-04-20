@@ -28,6 +28,9 @@
 #include "user_diskio.h" /* defines USER_Driver as external */
 
 /* USER CODE BEGIN Includes */
+/* USER CODE BEGIN PRIVATE_DEFINES */
+ #define RECORD   ( 512 )
+/* USER CODE END PRIVATE_DEFINES */
 
 /* USER CODE END Includes */
 
@@ -41,7 +44,7 @@ void MX_FATFS_Init(void);
 /* USER CODE BEGIN Prototypes */
 FRESULT Fat_Write(const char* filename,const uint8_t* write);
 FRESULT Fat_Read(const char* filename, uint8_t* buff);
-HAL_StatusTypeDef Flash_Write();
+FRESULT Fat_Write_Init(const char* filename, const uint8_t* write);
 /* USER CODE END Prototypes */
 #ifdef __cplusplus
 }
