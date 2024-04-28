@@ -578,7 +578,7 @@ static uint8_t *USBD_HID_GetDeviceQualifierDesc(uint16_t *length)
   * @param  buff: pointer to report
   * @retval status
   */
-uint8_t USBD_HID_Keybaord_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report, uint16_t len)
+uint8_t USBD_HID_Keyboard_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report, uint16_t len)
 {
   USBD_HID_Keyboard_HandleTypeDef *hhid = (USBD_HID_Keyboard_HandleTypeDef *)pdev->pClassData_HID_Keyboard;
 

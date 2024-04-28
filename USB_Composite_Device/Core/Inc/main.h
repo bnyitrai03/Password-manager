@@ -73,6 +73,7 @@ void Error_Handler(void);
 #define PDM_OUT_GPIO_Port GPIOC
 #define button_Pin GPIO_PIN_0
 #define button_GPIO_Port GPIOA
+#define button_EXTI_IRQn EXTI0_IRQn
 #define I2S3_WS_Pin GPIO_PIN_4
 #define I2S3_WS_GPIO_Port GPIOA
 #define SPI1_SCK_Pin GPIO_PIN_5

@@ -13,6 +13,7 @@
 void Transmit(uint8_t *msg);
 void List_all_commands();
 HAL_StatusTypeDef Start_Device();
+void Reset();
 /*    USER FUNCTION PROTOTYPES END    */
 
 #endif /* SRC_GLOBAL_FUNCTIONS_H_ */

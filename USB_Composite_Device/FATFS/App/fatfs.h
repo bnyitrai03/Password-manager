@@ -45,6 +45,7 @@ void MX_FATFS_Init(void);
 FRESULT Fat_Write(const char* filename,const uint8_t* write);
 FRESULT Fat_Read(const char* filename, uint8_t* buff);
 FRESULT Fat_Write_Init(const char* filename, const uint8_t* write);
+FRESULT Fat_Read_Filenames();
 /* USER CODE END Prototypes */
 #ifdef __cplusplus
 }

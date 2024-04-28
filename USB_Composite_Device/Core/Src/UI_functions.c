@@ -6,13 +6,19 @@
  */
 #include "UI_functions.h"
 #include "usbd_cdc_acm_if.h"
-#include  <ctype.h>
+#include "my_flash.h"
+#include "fatfs.h"
+#include  <math.h>
 
 extern uint8_t message;
 extern uint8_t usb_RX_Buff[];
+extern volatile uint8_t button;
+
 /*    USER FUNCTION PROTOTYPES BEGIN    */
 void Transmit(uint8_t *msg);
 void List_all_commands();
+void Reset();
+void Enter_password();
 HAL_StatusTypeDef Start_Device();
 static HAL_StatusTypeDef Convert_to_PIN(uint16_t *pin);
 static HAL_StatusTypeDef PIN_Check(uint16_t pin);
@@ -29,19 +35,42 @@ void Transmit(uint8_t *msg){
 		if(c == '\0')
 			break;
 	}
-	if(c != '\0') // message is too long to send
+
+	if(c != '\0'){ // message is too long to send
+		CDC_Transmit(0, "Error: Message was too long!", sizeof("Error: Message was too long!"));
 		return;
+	}
+
 	CDC_Transmit(0, msg, num);
+	HAL_Delay(10); // wait for the transmit
 }
 
 /* Lists all the commands through VCP
  for the user */
 void List_all_commands(){
 	Transmit((uint8_t *)"\n\rListing available commands:\n\r");
-	HAL_Delay(10);
-	Transmit((uint8_t *)"r : Resets the device. Deletes everything!\n\r");
-	HAL_Delay(10);
 	Transmit((uint8_t *)"l : Lists the control commands.\n\r");
+	Transmit((uint8_t *)"e : Enters the desired website.\n\r");
+	Transmit((uint8_t *)"r : Resets the device. Deletes everything!\n\r");
+}
+
+/* Wipes the flash memory of the device
+   then resets it */
+void Reset(){
+	uint8_t sectors[] = {7, 8, 9, 10, 11};
+
+	if (HAL_FLASH_Unlock() != HAL_OK)
+		return;
+	Transmit((uint8_t*) "\n\rStarting the erasure.\n\r");
+	if (Flash_Sector_Erase(sectors, 5) == HAL_OK) {
+		HAL_FLASH_Lock();
+		Transmit((uint8_t*) "\n\rFlash memory has been erased.\n\r");
+	} else {
+		Transmit((uint8_t*) "\n\rFlash memory failed to erase.\n\r");
+	}
+
+	Transmit((uint8_t *)"\n\rSoft resetting the device...\n\r");
+	NVIC_SystemReset();
 }
 
 /* Starting configuration such as
@@ -51,7 +80,6 @@ HAL_StatusTypeDef Start_Device(){
 	HAL_StatusTypeDef ret;
 
 	Transmit((uint8_t *)"\n\rBeginning the start configuration.");
-	HAL_Delay(10);
 
 	if(Flash_PIN_Read(&pin) == HAL_OK){ // if there is a valid PIN in the Flash
 		ret = PIN_Check(pin); // we compare it to user input
@@ -61,6 +89,39 @@ HAL_StatusTypeDef Start_Device(){
 	}
 
 	return ret;
+}
+
+/* Logs in the user to the
+  desired website */
+void Enter_password(){
+	uint8_t filebuff[512] = {};
+	FRESULT ret;
+
+	Transmit((uint8_t*) "\n\rSelect the website you want to enter:");
+	if ((ret = Fat_Read_Filenames()) != FR_OK) { //lists all the websites
+		if (ret != FR_INVALID_PARAMETER)
+			Transmit("\n\rError: Couldn't read all the filenames!");
+		return;
+	}
+
+	while (!message) {} // wait for user response
+	message = 0;        // message received
+
+	if(Fat_Read(usb_RX_Buff, filebuff) != FR_OK){  // reads the file data
+		Transmit("\n\rError: Couldn't read the file!");
+		return;
+	}
+
+	// Le kéne vágni a fájlnevet!
+
+	Transmit("\n\rPress the button to transmit the password!\n\r");
+	while(button){};
+	button = 1;
+
+	if(Send_Keystrokes(filebuff) == USBD_OK)
+		Transmit("\n\rPassord successfully typed.\n\r");
+	else
+		Transmit("\n\rError: Couldn't type the password!\n\r");
 }
 
 /* Converts the user input from the TX array
@@ -89,8 +150,7 @@ static HAL_StatusTypeDef PIN_Check(uint16_t pin){
 
     if(Convert_to_PIN(&userpin) != HAL_OK){
 		Transmit((uint8_t*) "\n\rError: The format of the PIN is invalid!");
-		HAL_Delay(10);
-		Transmit((uint8_t*) "\n\rRestarting the device...\n\r");
+		Transmit((uint8_t*) "\n\Start the device again!\n\r");
 		return HAL_ERROR;
     }
 
@@ -99,8 +159,7 @@ static HAL_StatusTypeDef PIN_Check(uint16_t pin){
 		return HAL_OK;
 	} else {
 		Transmit((uint8_t *)"\n\rError: The PINs don't match!");
-		HAL_Delay(10);
-		Transmit((uint8_t *)"\n\rRestarting the device...\n\r");
+		Transmit((uint8_t *)"\n\rStart the device again!\n\r");
 		return HAL_ERROR;
 	}
 }
@@ -116,8 +175,7 @@ static HAL_StatusTypeDef PIN_Configure(){
 
 	 if(Convert_to_PIN(&userpin) != HAL_OK){
 		 Transmit((uint8_t *)"\n\rError: The format of the PIN is invalid!");
-		 HAL_Delay(10);
-		 Transmit((uint8_t *)"\n\rRestarting the device...\n\r");
+		 Transmit((uint8_t *)"\n\rStart the device again!\n\r");
 		 return HAL_ERROR;
 	 }
 
@@ -126,8 +184,7 @@ static HAL_StatusTypeDef PIN_Configure(){
 		return HAL_OK;
 	} else {
 		Transmit((uint8_t *)"\n\rError: The PIN couldn't be saved!");
-		HAL_Delay(10);
-		Transmit((uint8_t *)"\n\rRestarting the device...\n\r");
+		Transmit((uint8_t *)"\n\rStart the device again!\n\r");
 		return HAL_ERROR;
 	}
 }

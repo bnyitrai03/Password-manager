@@ -17,7 +17,6 @@
   */
 /* USER CODE END Header */
 #include "fatfs.h"
-#include "my_flash.h"
 
 uint8_t retUSER;    /* Return value for USER */
 char USERPath[4];   /* USER logical drive path */
@@ -26,7 +25,7 @@ FIL USERFile;       /* File object for USER */
 
 /* USER CODE BEGIN Variables */
 FATFS* fat_ptr = &USERFatFS;
-
+FRESULT ret;
 /* USER CODE BEGIN PRIVATE_DEFINES */
 /* USER CODE END PRIVATE_DEFINES */
 
@@ -69,7 +68,6 @@ DWORD get_fattime(void)
 
 /* USER CODE BEGIN Application */
 FRESULT Fat_Write(const char *filename, const uint8_t *write){
-	FRESULT ret;
 	if ((ret = Fat_Write_Init(filename, write)) == FR_OK)
 		if (Flash_Write() != HAL_OK) // saves the data in flash as well
 			ret = FR_DISK_ERR;
@@ -77,7 +75,6 @@ FRESULT Fat_Write(const char *filename, const uint8_t *write){
 }
 
 FRESULT Fat_Write_Init(const char *filename, const uint8_t *write){
-	FRESULT ret;
 	DWORD free_clusters;  // Number of free clusters
 	uint32_t wbytes;     // File write counts
 	if ( (ret = f_getfree((TCHAR const*) USERPath, &free_clusters, &fat_ptr))
@@ -91,7 +88,6 @@ FRESULT Fat_Write_Init(const char *filename, const uint8_t *write){
 }
 
 FRESULT Fat_Read(const char *filename, uint8_t *buff){
-	FRESULT ret;
 	uint32_t rbytes;     // File read counts
 	if ((ret = f_open(&USERFile, filename, FA_OPEN_EXISTING | FA_READ))
 			== FR_OK)
@@ -103,5 +99,38 @@ FRESULT Fat_Read(const char *filename, uint8_t *buff){
 	f_close(&USERFile);
 	return ret;
 
+}
+
+/* Transmits the name of
+   all files in the Fatfs to the user*/
+FRESULT Fat_Read_Filenames(){
+	DIR dir;
+	FILINFO fileinfo;
+	uint16_t i = 0;
+
+	if((ret = f_opendir(&dir, (TCHAR const*) USERPath)) != FR_OK)
+		return ret;
+
+	for (; i < 192; i++) {
+		ret = f_readdir(&dir, &fileinfo); // Read a directory item
+		if (ret != FR_OK || fileinfo.fname[0] == 0)
+			break; // Break on error or end of dir
+		if (!strcmp(fileinfo.fname, "SYSTEM~1")) // if Fatfs is empty at the start
+			if (f_unlink("SYSTEM~1") != FR_OK) {
+				i--;
+				continue;
+			}
+		Transmit("\n\r");
+		Transmit((uint8_t*) fileinfo.fname);
+	}
+	Transmit("\n\r");
+
+	if(i == 0){
+		Transmit("There aren't any passwords saved on the device!\n\r");
+		ret = FR_INVALID_PARAMETER;
+	}
+
+	f_closedir(&dir);
+	return ret;
 }
 /* USER CODE END Application */
