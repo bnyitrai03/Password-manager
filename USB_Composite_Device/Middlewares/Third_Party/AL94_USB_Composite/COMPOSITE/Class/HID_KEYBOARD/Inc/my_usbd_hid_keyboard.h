@@ -119,7 +119,7 @@ extern uint8_t HID_KEYBOARD_STR_DESC_IDX;
 /** @defgroup USB_CORE_Exported_Functions
   * @{
   */
-uint8_t USBD_HID_Keybaord_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report, uint16_t len);
+uint8_t USBD_HID_Keyboard_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report, uint16_t len);
 uint32_t USBD_HID_Keyboard_GetPollingInterval(USBD_HandleTypeDef *pdev);
 
 void USBD_Update_HID_KBD_DESC(uint8_t *desc, uint8_t itf_no, uint8_t in_ep, uint8_t str_idx);

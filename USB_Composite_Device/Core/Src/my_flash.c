@@ -10,6 +10,9 @@
 /*    USER FUNCTION PROTOTYPES BEGIN    */
 void Flash_Read_Init();
 HAL_StatusTypeDef Flash_Write();
+HAL_StatusTypeDef Flash_Sector_Erase(uint8_t *sector, uint8_t num);
+HAL_StatusTypeDef Flash_PIN_Read(uint16_t *pin);
+HAL_StatusTypeDef Flash_PIN_Write(uint16_t pin);
 
 static uint8_t Validate_Record(uint8_t *buff, char *filename);
 static HAL_StatusTypeDef Verify_Sector(uint8_t *seqnum10, uint8_t *seqnum11, uint32_t *ACTIVE_SECTOR, uint8_t *buff);
@@ -228,7 +231,7 @@ static HAL_StatusTypeDef Flash_Write_Sector10(uint8_t *sector, uint8_t *seqnum10
 
 	filestatus = f_opendir(&dir, (TCHAR const*) USERPath); /* Open the directory */
 	if (filestatus == FR_OK) {
-		for (uint32_t j = 0; j < 128; j++) {
+		for (uint32_t j = 0; j < 192; j++) {
 
 			filestatus = f_readdir(&dir, &fileinfo); /* Read a directory item */
 			if (filestatus != FR_OK || fileinfo.fname[0] == 0)
@@ -286,12 +289,12 @@ static HAL_StatusTypeDef Flash_Write_Sector11(uint8_t *sector, uint8_t *seqnum11
 
 	filestatus = f_opendir(&dir, (TCHAR const*) USERPath); /* Open the directory */
 	if (filestatus == FR_OK) {
-		for (uint32_t j = 0; j < 128; j++) {
+		for (uint32_t j = 0; j < 192; j++) {
 
 			filestatus = f_readdir(&dir, &fileinfo); /* Read a directory item */
 			if (filestatus != FR_OK || fileinfo.fname[0] == 0)
 				break; /* Break on error or end of dir */
-			if (!strcmp(fileinfo.fname, "SYSTEM~1")) // Fatfs is empty at the start
+			if (!strcmp(fileinfo.fname, "SYSTEM~1")) // if Fatfs is empty at the start
 				if (f_unlink("SYSTEM~1") != FR_OK) {
 					j--;
 					continue;
