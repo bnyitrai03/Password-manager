@@ -10,6 +10,7 @@
 #include "fatfs.h"
 #include  <math.h>
 
+
 extern uint8_t message;
 extern uint8_t usb_RX_Buff[];
 extern volatile uint8_t button;
@@ -23,6 +24,7 @@ HAL_StatusTypeDef Start_Device();
 static HAL_StatusTypeDef Convert_to_PIN(uint16_t *pin);
 static HAL_StatusTypeDef PIN_Check(uint16_t pin);
 static HAL_StatusTypeDef PIN_Configure();
+static HAL_StatusTypeDef Format_Password(uint8_t *password);
 /*    USER FUNCTION PROTOTYPES END    */
 
 /* Transmits the message to the user
@@ -61,15 +63,16 @@ void Reset(){
 
 	if (HAL_FLASH_Unlock() != HAL_OK)
 		return;
-	Transmit((uint8_t*) "\n\rStarting the erasure.\n\r");
+	Transmit("\n\rStarting the erasure.\n\r");
 	if (Flash_Sector_Erase(sectors, 5) == HAL_OK) {
 		HAL_FLASH_Lock();
-		Transmit((uint8_t*) "\n\rFlash memory has been erased.\n\r");
+		Transmit("\n\rFlash memory has been erased.\n\r");
 	} else {
-		Transmit((uint8_t*) "\n\rFlash memory failed to erase.\n\r");
+		Transmit("\n\rFlash memory failed to erase.\n\r");
+		return;
 	}
 
-	Transmit((uint8_t *)"\n\rSoft resetting the device...\n\r");
+	Transmit("\n\rSoft resetting the device...\n\r");
 	NVIC_SystemReset();
 }
 
@@ -112,16 +115,33 @@ void Enter_password(){
 		return;
 	}
 
-	// Le kéne vágni a fájlnevet!
+	if (Format_Password(filebuff) != HAL_OK) {
+		Transmit("\n\rError: Wrong file format!");
+		return;
+	}
 
 	Transmit("\n\rPress the button to transmit the password!\n\r");
 	while(button){};
 	button = 1;
 
 	if(Send_Keystrokes(filebuff) == USBD_OK)
-		Transmit("\n\rPassord successfully typed.\n\r");
+		Transmit("\n\rPassword successfully typed.\n\r");
 	else
 		Transmit("\n\rError: Couldn't type the password!\n\r");
+}
+
+/* Removes the filename from
+ the password */
+static HAL_StatusTypeDef Format_Password(uint8_t *password) {
+	HAL_StatusTypeDef ret = HAL_ERROR;
+
+	uint8_t *tilde_pos = strchr(password, '~'); // After the first tilde is the password
+	if (tilde_pos != NULL) {
+		memmove(password, tilde_pos + 1, strlen(tilde_pos) + 1); // +1 to include the null terminator
+		ret = HAL_OK;
+	}
+
+	return ret;
 }
 
 /* Converts the user input from the TX array

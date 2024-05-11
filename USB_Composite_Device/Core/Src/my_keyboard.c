@@ -10,84 +10,324 @@
 #include "UI_functions.h"
 
 USBD_StatusTypeDef Send_Keystrokes(const uint8_t *buff);
-USBD_StatusTypeDef Convert_char_to_Keystroke(uint8_t index);
+static USBD_StatusTypeDef Convert_char_to_Keystroke(uint8_t ascii);
 
 extern USBD_HandleTypeDef hUsbDevice;
 
-typedef struct {
-	uint8_t MODIFIER;
-	uint8_t RESERVED;
-	uint8_t KEYCODE1;
-	uint8_t KEYCODE2;
-	uint8_t KEYCODE3;
-	uint8_t KEYCODE4;
-	uint8_t KEYCODE5;
-	uint8_t KEYCODE6;
-} Keyboard;
+static Keyboard keycodes = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-Keyboard keycodes = { 0, 0, 0, 0, 0, 0, 0, 0 };
-
-const char ascii_to_hid_key_map[95][2] = {                                         // index with ascii
-    {0, KEY_SPACE}, {KEY_MOD_LSHIFT, KEY_1}, {KEY_MOD_LSHIFT, KEY_APOSTROPHE},
-    {KEY_MOD_LSHIFT, KEY_3}, {KEY_MOD_LSHIFT, KEY_4}, {KEY_MOD_LSHIFT, KEY_5},
-    {KEY_MOD_LSHIFT, KEY_7}, {0, KEY_APOSTROPHE}, {KEY_MOD_LSHIFT, KEY_9},
-    {KEY_MOD_LSHIFT, KEY_0}, {KEY_MOD_LSHIFT, KEY_8}, {KEY_MOD_LSHIFT, KEY_EQUAL},
-    {0, KEY_COMMA}, {0, KEY_MINUS}, {0, KEY_DOT}, {0, KEY_SLASH}, {0, KEY_0},
-    {0, KEY_1}, {0, KEY_2}, {0, KEY_3}, {0, KEY_4}, {0, KEY_5}, {0, KEY_6},
-    {0, KEY_7}, {0, KEY_8}, {0, KEY_9}, {KEY_MOD_LSHIFT, KEY_SEMICOLON},
-    {0, KEY_SEMICOLON}, {KEY_MOD_LSHIFT, KEY_COMMA}, {0, KEY_EQUAL},
-    {KEY_MOD_LSHIFT, KEY_DOT}, {KEY_MOD_LSHIFT, KEY_SLASH}, {KEY_MOD_LSHIFT, KEY_2},
-    {KEY_MOD_LSHIFT, KEY_A}, {KEY_MOD_LSHIFT, KEY_B}, {KEY_MOD_LSHIFT, KEY_C},
-    {KEY_MOD_LSHIFT, KEY_D}, {KEY_MOD_LSHIFT, KEY_E}, {KEY_MOD_LSHIFT, KEY_F},
-    {KEY_MOD_LSHIFT, KEY_G}, {KEY_MOD_LSHIFT, KEY_H}, {KEY_MOD_LSHIFT, KEY_I},
-    {KEY_MOD_LSHIFT, KEY_J}, {KEY_MOD_LSHIFT, KEY_K}, {KEY_MOD_LSHIFT, KEY_L},
-    {KEY_MOD_LSHIFT, KEY_M}, {KEY_MOD_LSHIFT, KEY_N}, {KEY_MOD_LSHIFT, KEY_O},
-    {KEY_MOD_LSHIFT, KEY_P}, {KEY_MOD_LSHIFT, KEY_Q}, {KEY_MOD_LSHIFT, KEY_R},
-    {KEY_MOD_LSHIFT, KEY_S}, {KEY_MOD_LSHIFT, KEY_T}, {KEY_MOD_LSHIFT, KEY_U},
-    {KEY_MOD_LSHIFT, KEY_V}, {KEY_MOD_LSHIFT, KEY_W}, {KEY_MOD_LSHIFT, KEY_X},
-    {KEY_MOD_LSHIFT, KEY_Y}, {KEY_MOD_LSHIFT, KEY_Z}, {0, KEY_LEFTBRACE},
-    {0, KEY_BACKSLASH}, {0, KEY_RIGHTBRACE}, {KEY_MOD_LSHIFT, KEY_6},
-    {KEY_MOD_LSHIFT, KEY_MINUS}, {0, KEY_GRAVE}, {0, KEY_A}, {0, KEY_B},
-    {0, KEY_C}, {0, KEY_D}, {0, KEY_E}, {0, KEY_F}, {0, KEY_G}, {0, KEY_H},
-    {0, KEY_I}, {0, KEY_J}, {0, KEY_K}, {0, KEY_L}, {0, KEY_M}, {0, KEY_N},
-    {0, KEY_O}, {0, KEY_P}, {0, KEY_Q}, {0, KEY_R}, {0, KEY_S}, {0, KEY_T},
-    {0, KEY_U}, {0, KEY_V}, {0, KEY_W}, {0, KEY_X}, {0, KEY_Y}, {0, KEY_Z},
-    {KEY_MOD_LSHIFT, KEY_LEFTBRACE}, {KEY_MOD_LSHIFT, KEY_BACKSLASH},
-    {KEY_MOD_LSHIFT, KEY_RIGHTBRACE}, {KEY_MOD_LSHIFT, KEY_GRAVE}
+static Keys hunKeys[NumberOfHunKeys] = {
+	{'0',53, MOD_NO_MODIFIER},
+	{'1',30, MOD_NO_MODIFIER},
+	{'2',31, MOD_NO_MODIFIER},
+	{'3',32, MOD_NO_MODIFIER},
+	{'4',33, MOD_NO_MODIFIER},
+	{'5',34, MOD_NO_MODIFIER},
+	{'6',35, MOD_NO_MODIFIER},
+	{'7',36, MOD_NO_MODIFIER},
+	{'8',37, MOD_NO_MODIFIER},
+	{'9',38, MOD_NO_MODIFIER},
+	{182,39, MOD_NO_MODIFIER}, //ö
+	{188,45, MOD_NO_MODIFIER}, //ü
+	{179,46, MOD_NO_MODIFIER}, //ó
+	{0xa7,53, MOD_SHIFT_LEFT}, //§
+	{'\'',30, MOD_SHIFT_LEFT},
+	{'"',31, MOD_SHIFT_LEFT},
+	{'+',32, MOD_SHIFT_LEFT},
+	{'!',33, MOD_SHIFT_LEFT},
+	{'%',34, MOD_SHIFT_LEFT},
+	{'/',35, MOD_SHIFT_LEFT},
+	{'=',36, MOD_SHIFT_LEFT},
+	{'(',37, MOD_SHIFT_LEFT},
+	{')',38, MOD_SHIFT_LEFT},
+	{150,39, MOD_SHIFT_LEFT}, //Ö
+	{156,45, MOD_SHIFT_LEFT}, //Ü
+	{147,46, MOD_SHIFT_LEFT}, //Ó
+	{'~',30, MOD_ALT_RIGHT},
+	{'^',32, MOD_ALT_RIGHT},
+	{'`',36, MOD_ALT_RIGHT},
+	{'\t',43, MOD_NO_MODIFIER},
+	{'\n',40, MOD_NO_MODIFIER},
+	{' ',44, MOD_NO_MODIFIER},
+	{'a',4, MOD_NO_MODIFIER},
+	{'s',22, MOD_NO_MODIFIER},
+	{'d',7, MOD_NO_MODIFIER},
+	{'f',9, MOD_NO_MODIFIER},
+	{'g',10, MOD_NO_MODIFIER},
+	{'h',11, MOD_NO_MODIFIER},
+	{'j',13, MOD_NO_MODIFIER},
+	{'k',14, MOD_NO_MODIFIER},
+	{'l',15, MOD_NO_MODIFIER},
+	{169,51, MOD_NO_MODIFIER}, //é
+	{0xa1,52, MOD_NO_MODIFIER}, //á
+	{'A',4, MOD_SHIFT_LEFT},
+	{'S',22, MOD_SHIFT_LEFT},
+	{'D',7, MOD_SHIFT_LEFT},
+	{'F',9, MOD_SHIFT_LEFT},
+	{'G',10, MOD_SHIFT_LEFT},
+	{'H',11, MOD_SHIFT_LEFT},
+	{'J',13, MOD_SHIFT_LEFT},
+	{'K',14, MOD_SHIFT_LEFT},
+	{'L',15, MOD_SHIFT_LEFT},
+	{137,51, MOD_SHIFT_LEFT}, //É
+	{129,52, MOD_SHIFT_LEFT}, //Á
+	{'[',9, MOD_ALT_RIGHT},
+	{']',10, MOD_ALT_RIGHT},
+	{'$',51, MOD_ALT_RIGHT},
+	{159,52, MOD_ALT_RIGHT}, //ß
+	{'q',20, MOD_NO_MODIFIER},
+	{'w',26, MOD_NO_MODIFIER},
+	{'e',8, MOD_NO_MODIFIER},
+	{'r',21, MOD_NO_MODIFIER},
+	{'t',23, MOD_NO_MODIFIER},
+	{'z',28, MOD_NO_MODIFIER},
+	{'u',24, MOD_NO_MODIFIER},
+	{'i',12, MOD_NO_MODIFIER},
+	{'o',18, MOD_NO_MODIFIER},
+	{'p',19, MOD_NO_MODIFIER},
+	{245,47, MOD_NO_MODIFIER}, //ő
+	{186,48, MOD_NO_MODIFIER}, //ú
+	{251,49, MOD_NO_MODIFIER}, //ű
+	{'Q',20, MOD_SHIFT_LEFT},
+	{'W',26, MOD_SHIFT_LEFT},
+	{'E',8, MOD_SHIFT_LEFT},
+	{'R',21, MOD_SHIFT_LEFT},
+	{'T',23, MOD_SHIFT_LEFT},
+	{'Z',28, MOD_SHIFT_LEFT},
+	{'U',24, MOD_SHIFT_LEFT},
+	{'I',12, MOD_SHIFT_LEFT},
+	{'O',18, MOD_SHIFT_LEFT},
+	{'P',19, MOD_SHIFT_LEFT},
+	{0xd5,47, MOD_SHIFT_LEFT}, //Ő
+	{154,48, MOD_SHIFT_LEFT}, //Ú
+	{0xdb,49, MOD_SHIFT_LEFT}, //Ű
+	{'\\',20, MOD_ALT_RIGHT},
+	{'|',26, MOD_ALT_RIGHT},
+	{132,8, MOD_ALT_RIGHT}, //Ä
+	{172,24, MOD_ALT_RIGHT}, //€
+	{183,47, MOD_ALT_RIGHT}, //÷
+	{151,48, MOD_ALT_RIGHT}, //×
+	{'y',29, MOD_NO_MODIFIER},
+	{'x',27, MOD_NO_MODIFIER},
+	{'c',6, MOD_NO_MODIFIER},
+	{'v',25, MOD_NO_MODIFIER},
+	{'b',5, MOD_NO_MODIFIER},
+	{'n',17, MOD_NO_MODIFIER},
+	{'m',16, MOD_NO_MODIFIER},
+	{',',54, MOD_NO_MODIFIER},
+	{'.',55, MOD_NO_MODIFIER},
+	{'-',56, MOD_NO_MODIFIER},
+	{'Y',29, MOD_SHIFT_LEFT},
+	{'X',27, MOD_SHIFT_LEFT},
+	{'C',6, MOD_SHIFT_LEFT},
+	{'V',25, MOD_SHIFT_LEFT},
+	{'B',5, MOD_SHIFT_LEFT},
+	{'N',17, MOD_SHIFT_LEFT},
+	{'M',16, MOD_SHIFT_LEFT},
+	{'?',54, MOD_SHIFT_LEFT},
+	{':',55, MOD_SHIFT_LEFT},
+	{'_',56, MOD_SHIFT_LEFT},
+	{'>',29, MOD_ALT_RIGHT},
+	{'#',27, MOD_ALT_RIGHT},
+	{'&',6, MOD_ALT_RIGHT},
+	{'@',25, MOD_ALT_RIGHT},
+	{'{',5, MOD_ALT_RIGHT},
+	{'}',17, MOD_ALT_RIGHT},
+	{'<',16, MOD_ALT_RIGHT},
+	{';',54, MOD_ALT_RIGHT},
+	{'>',55, MOD_ALT_RIGHT},
+	{'*',56, MOD_ALT_RIGHT},
+	{173,100, MOD_NO_MODIFIER}, //í
+	{141,100, MOD_SHIFT_LEFT}, //Í
+	{'<',100, MOD_ALT_RIGHT},
+	{'\0',0, MOD_NO_MODIFIER}, //END OF STRUCT
 };
+
+//stores the english keyboard characters and keyboard codes
+static Keys engKeys[NumberOfEngKeys] = {
+	{'0',39, MOD_NO_MODIFIER},
+	{'1',30, MOD_NO_MODIFIER},
+	{'2',31, MOD_NO_MODIFIER},
+	{'3',32, MOD_NO_MODIFIER},
+	{'4',33, MOD_NO_MODIFIER},
+	{'5',34, MOD_NO_MODIFIER},
+	{'6',35, MOD_NO_MODIFIER},
+	{'7',36, MOD_NO_MODIFIER},
+	{'8',37, MOD_NO_MODIFIER},
+	{'9',38, MOD_NO_MODIFIER},
+	{182,19, MOD_ALT_RIGHT}, //ö
+	{188,28, MOD_ALT_RIGHT}, //ü
+	{179,18, MOD_ALT_RIGHT}, //ó
+	{'\'',49, MOD_NO_MODIFIER},
+	{'"',52, MOD_NO_MODIFIER},
+	{'+',46, MOD_SHIFT_LEFT},
+	{'!',30, MOD_SHIFT_LEFT},
+	{'%',34, MOD_SHIFT_LEFT},
+	{'/',56, MOD_NO_MODIFIER},
+	{'=',46, MOD_NO_MODIFIER},
+	{'(',37, MOD_SHIFT_LEFT},
+	{')',38, MOD_SHIFT_LEFT},
+	{'~',53, MOD_SHIFT_LEFT},
+	{'^',35, MOD_SHIFT_LEFT},
+	{'`',53, MOD_NO_MODIFIER},
+	{'\t',43, MOD_NO_MODIFIER},
+	{'\n', 40, MOD_NO_MODIFIER},
+	{' ',44, MOD_NO_MODIFIER},
+	{'a',4, MOD_NO_MODIFIER},
+	{'s',22, MOD_NO_MODIFIER},
+	{'d',7, MOD_NO_MODIFIER},
+	{'f',9, MOD_NO_MODIFIER},
+	{'g',10, MOD_NO_MODIFIER},
+	{'h',11, MOD_NO_MODIFIER},
+	{'j',13, MOD_NO_MODIFIER},
+	{'k',14, MOD_NO_MODIFIER},
+	{'l',15, MOD_NO_MODIFIER},
+	{169,8, MOD_ALT_RIGHT}, //é
+	{0xa1,4, MOD_ALT_RIGHT}, //á
+	{'A',4, MOD_SHIFT_LEFT},
+	{'S',22, MOD_SHIFT_LEFT},
+	{'D',7, MOD_SHIFT_LEFT},
+	{'F',9, MOD_SHIFT_LEFT},
+	{'G',10, MOD_SHIFT_LEFT},
+	{'H',11, MOD_SHIFT_LEFT},
+	{'J',13, MOD_SHIFT_LEFT},
+	{'K',14, MOD_SHIFT_LEFT},
+	{'L',15, MOD_SHIFT_LEFT},
+	{'[',47, MOD_NO_MODIFIER},
+	{']',48, MOD_NO_MODIFIER},
+	{'$',33, MOD_SHIFT_LEFT},
+	{'q',20, MOD_NO_MODIFIER},
+	{'w',26, MOD_NO_MODIFIER},
+	{'e',8, MOD_NO_MODIFIER},
+	{'r',21, MOD_NO_MODIFIER},
+	{'t',23, MOD_NO_MODIFIER},
+	{'z',29, MOD_NO_MODIFIER},
+	{'u',24, MOD_NO_MODIFIER},
+	{'i',12, MOD_NO_MODIFIER},
+	{'o',18, MOD_NO_MODIFIER},
+	{'p',19, MOD_NO_MODIFIER},
+	{186,24, MOD_ALT_RIGHT}, //ú
+	{'Q',20, MOD_SHIFT_LEFT},
+	{'W',26, MOD_SHIFT_LEFT},
+	{'E',8, MOD_SHIFT_LEFT},
+	{'R',21, MOD_SHIFT_LEFT},
+	{'T',23, MOD_SHIFT_LEFT},
+	{'Z',29, MOD_SHIFT_LEFT},
+	{'U',24, MOD_SHIFT_LEFT},
+	{'I',12, MOD_SHIFT_LEFT},
+	{'O',18, MOD_SHIFT_LEFT},
+	{'P',19, MOD_SHIFT_LEFT},
+	{'\\',49, MOD_NO_MODIFIER},
+	{'|',49, MOD_SHIFT_LEFT},
+	{'y',28, MOD_NO_MODIFIER},
+	{'x',27, MOD_NO_MODIFIER},
+	{'c',6, MOD_NO_MODIFIER},
+	{'v',25, MOD_NO_MODIFIER},
+	{'b',5, MOD_NO_MODIFIER},
+	{'n',17, MOD_NO_MODIFIER},
+	{'m',16, MOD_NO_MODIFIER},
+	{',',54, MOD_NO_MODIFIER},
+	{'.',55, MOD_NO_MODIFIER},
+	{'-',45, MOD_NO_MODIFIER},
+	{'Y',28, MOD_SHIFT_LEFT},
+	{'X',27, MOD_SHIFT_LEFT},
+	{'C',6, MOD_SHIFT_LEFT},
+	{'V',25, MOD_SHIFT_LEFT},
+	{'B',5, MOD_SHIFT_LEFT},
+	{'N',17, MOD_SHIFT_LEFT},
+	{'M',16, MOD_SHIFT_LEFT},
+	{'?',56, MOD_SHIFT_LEFT},
+	{':',51, MOD_SHIFT_LEFT},
+	{'_',45, MOD_SHIFT_LEFT},
+	{'>',55, MOD_SHIFT_LEFT},
+	{'#',32, MOD_SHIFT_LEFT},
+	{'&',36, MOD_SHIFT_LEFT},
+	{'@',31, MOD_SHIFT_LEFT},
+	{'{',47, MOD_SHIFT_LEFT},
+	{'}',48, MOD_SHIFT_LEFT},
+	{'<',54, MOD_SHIFT_LEFT},
+	{';',51, MOD_NO_MODIFIER},
+	{'*',37, MOD_SHIFT_LEFT},
+	{'\0',0, MOD_NO_MODIFIER}, //END OF STRUCT
+};
+
+/*stores the selected keyboard, english by default*/
+/*static Keys *selectedKeyboard = engKeys;
+static uint8_t Length = NumberOfEngKeys;
+static uint8_t langID = ENG;*/
+
+static Keys *selectedKeyboard = hunKeys;
+static uint8_t Length = NumberOfHunKeys;
+static uint8_t langID = HUN;
 
 /* Converts and sends the file
    through USB*/
 USBD_StatusTypeDef Send_Keystrokes(const uint8_t *buff) {
-	for (uint8_t *c = buff; *c != '\0'; c++) {
-		if(Convert_char_to_Keystroke(*c) != USBD_OK){// press the key
+	for (uint16_t i = 0; buff[i] != '~'; i++) {
+		if(buff[i] == '\r'){
+			continue; // ENTER key is '\n'+'\r', we only press it once
+		}
+
+		if(Convert_char_to_Keystroke(buff[i]) != USBD_OK){// press the key
 			return USBD_FAIL;
 		}
 
 		if(USBD_HID_Keyboard_SendReport(&hUsbDevice,&keycodes,sizeof(keycodes)) != USBD_OK){
 			return USBD_FAIL;
 		}
-
-		HAL_Delay(5);
 		keycodes.KEYCODE1 = 0; // release the key
 		keycodes.MODIFIER = 0;
 		if(USBD_HID_Keyboard_SendReport(&hUsbDevice,&keycodes,sizeof(keycodes)) != USBD_OK){
 			return USBD_FAIL;
 		}
-		HAL_Delay(50);
+		HAL_Delay(10);
 	}
+
+	keycodes.KEYCODE1 = 0; // release the key
+	keycodes.MODIFIER = 0;
+	if (USBD_HID_Keyboard_SendReport(&hUsbDevice, &keycodes, sizeof(keycodes)) != USBD_OK){
+		return USBD_FAIL;
+	}
+
 	return USBD_OK;
 }
 
 /* Converts the given data into
-   a keyboard character*/
-USBD_StatusTypeDef Convert_char_to_Keystroke(uint8_t index){
-	index -= 32;
-	if(index < 32 || 127 < index){ // only map the ascii chars from 32 to 127
-		return USBD_FAIL;
+ a keyboard character*/
+static USBD_StatusTypeDef Convert_char_to_Keystroke(uint8_t ascii) {
+	for (uint8_t i = 0; i < Length; i++) {
+		if (selectedKeyboard[i].ascii_code == ascii) {
+			keycodes.MODIFIER = selectedKeyboard[i].mode;
+			keycodes.KEYCODE1 = selectedKeyboard[i].keycode;
+			return USBD_OK;
+		}
 	}
 
-	keycodes.MODIFIER = ascii_to_hid_key_map[index][0];
-	keycodes.KEYCODE1 = ascii_to_hid_key_map[index][1];
-	return USBD_OK;
+	keycodes.MODIFIER = 0;
+	keycodes.KEYCODE1 = 0;
+	return USBD_FAIL;
+}
+
+uint8_t Set_Keyboard_Language(uint8_t langId) {
+	uint8_t ret = 1;
+
+	switch (langId) {
+	case HUN:
+		selectedKeyboard = hunKeys;
+		Length = NumberOfHunKeys;
+		langID = HUN;
+		break;
+
+	case ENG:
+		selectedKeyboard = engKeys;
+		Length = NumberOfEngKeys;
+		langID = ENG;
+		break;
+
+	default:
+		ret = 0;
+		break;
+	}
+
+	return ret;
 }
