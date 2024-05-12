@@ -33,6 +33,7 @@ FRESULT ret;
 FRESULT Fat_Write(const char* filename,const uint8_t* write);
 FRESULT Fat_Write_Init(const char* filename, const uint8_t* write);
 FRESULT Fat_Read(const char* filename, uint8_t* buff);
+FRESULT Fat_Read_Filenames();
 /* USER CODE END PFP */
 
 /* USER CODE END Variables */

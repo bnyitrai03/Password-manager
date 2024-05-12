@@ -122,12 +122,13 @@ void Enter_password(){
 
 	Transmit("\n\rPress the button to transmit the password!\n\r");
 	while(button){};
-	button = 1;
 
 	if(Send_Keystrokes(filebuff) == USBD_OK)
 		Transmit("\n\rPassword successfully typed.\n\r");
 	else
 		Transmit("\n\rError: Couldn't type the password!\n\r");
+
+	button = 1; // for debouncing purposes enable the flag here
 }
 
 /* Removes the filename from

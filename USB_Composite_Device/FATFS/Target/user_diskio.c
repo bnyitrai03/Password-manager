@@ -170,7 +170,7 @@ DRESULT USER_ioctl (
 )
 {
   /* USER CODE BEGIN IOCTL */
-	DRESULT res = RES_ERROR;
+	DRESULT res;
 
 	switch (cmd) {
 	case CTRL_SYNC:
@@ -194,7 +194,7 @@ DRESULT USER_ioctl (
 	case CTRL_TRIM:
 		break;
 	default:
-		res = RES_PARERR; /* Nem támogatott parancs */
+		res = RES_PARERR;
 	}
 
 	return res;
