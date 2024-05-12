@@ -265,25 +265,29 @@ static uint8_t langID = HUN;
 USBD_StatusTypeDef Send_Keystrokes(const uint8_t *buff) {
 	for (uint16_t i = 0; buff[i] != '~'; i++) {
 		if(buff[i] == '\r'){
-			continue; // ENTER key is '\n'+'\r', we only press it once
+			continue; // ENTER key consists stored as two chars: '\n' and '\r', we only send ENTER once
 		}
 
-		if(Convert_char_to_Keystroke(buff[i]) != USBD_OK){// press the key
+		if(Convert_char_to_Keystroke(buff[i]) != USBD_OK){
 			return USBD_FAIL;
 		}
 
-		if(USBD_HID_Keyboard_SendReport(&hUsbDevice,&keycodes,sizeof(keycodes)) != USBD_OK){
+		if(USBD_HID_Keyboard_SendReport(&hUsbDevice,&keycodes,sizeof(keycodes)) != USBD_OK){ // press the key
 			return USBD_FAIL;
 		}
-		keycodes.KEYCODE1 = 0; // release the key
+		keycodes.KEYCODE1 = 0;
 		keycodes.MODIFIER = 0;
-		if(USBD_HID_Keyboard_SendReport(&hUsbDevice,&keycodes,sizeof(keycodes)) != USBD_OK){
+		if(USBD_HID_Keyboard_SendReport(&hUsbDevice,&keycodes,sizeof(keycodes)) != USBD_OK){ // release the key
 			return USBD_FAIL;
 		}
 		HAL_Delay(10);
+
+		if(buff[i] == '\n'){
+			HAL_Delay(200); // after hitting ENTER leave time for the website to load
+		}
 	}
 
-	keycodes.KEYCODE1 = 0; // release the key
+	keycodes.KEYCODE1 = 0;
 	keycodes.MODIFIER = 0;
 	if (USBD_HID_Keyboard_SendReport(&hUsbDevice, &keycodes, sizeof(keycodes)) != USBD_OK){
 		return USBD_FAIL;

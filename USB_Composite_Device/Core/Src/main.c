@@ -123,7 +123,7 @@ int main(void)
 
 			if (!start) {
 				if (Start_Device() == HAL_OK){
-					List_all_commands(); // if the device was unlocked we list the commands
+					List_all_commands(); //we list the commands
 					start++;
 				}
 			} else
