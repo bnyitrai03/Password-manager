@@ -433,13 +433,12 @@ static int8_t CDC_Control(uint8_t cdc_ch, uint8_t cmd, uint8_t *pbuf, uint16_t l
 static int8_t CDC_Receive(uint8_t cdc_ch, uint8_t *Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
-  //HAL_UART_Transmit_DMA(CDC_CH_To_UART_Handle(cdc_ch), Buf, *Len);
-  message = 1; // signal the arrival of a user controll message
+  message = 1; // signal the arrival of a user control message
 
   USBD_CDC_SetRxBuffer(cdc_ch, &hUsbDevice, &Buf[0]);
   USBD_CDC_ReceivePacket(cdc_ch, &hUsbDevice);
 
-  memset(usb_RX_Buff, '\0', 64);
+  memset(usb_RX_Buff, '\0', 64);  // Clear buffer before receiving
   memcpy(usb_RX_Buff, Buf, *Len);
   memset(Buf, '\0', 64);
 

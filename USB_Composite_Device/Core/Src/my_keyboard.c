@@ -9,13 +9,16 @@
 #include "usb_device.h"
 #include "UI_functions.h"
 
+/* USER FUNCTION PROTOTYPES BEGIN */
 USBD_StatusTypeDef Send_Keystrokes(const uint8_t *buff);
+uint8_t Set_Keyboard_Language(uint8_t langId);
 static USBD_StatusTypeDef Convert_char_to_Keystroke(uint8_t ascii);
+/* USER FUNCTION PROTOTYPES END */
 
+/* USER PRIVATE TYPES BEGIN */
 extern USBD_HandleTypeDef hUsbDevice;
 
 static Keyboard keycodes = { 0, 0, 0, 0, 0, 0, 0, 0 };
-
 static Keys hunKeys[NumberOfHunKeys] = {
 	{'0',53, MOD_NO_MODIFIER},
 	{'1',30, MOD_NO_MODIFIER},
@@ -59,7 +62,7 @@ static Keys hunKeys[NumberOfHunKeys] = {
 	{'k',14, MOD_NO_MODIFIER},
 	{'l',15, MOD_NO_MODIFIER},
 	{169,51, MOD_NO_MODIFIER}, //é
-	{0xa1,52, MOD_NO_MODIFIER}, //á
+	{161,52, MOD_NO_MODIFIER}, //á
 	{'A',4, MOD_SHIFT_LEFT},
 	{'S',22, MOD_SHIFT_LEFT},
 	{'D',7, MOD_SHIFT_LEFT},
@@ -85,9 +88,9 @@ static Keys hunKeys[NumberOfHunKeys] = {
 	{'i',12, MOD_NO_MODIFIER},
 	{'o',18, MOD_NO_MODIFIER},
 	{'p',19, MOD_NO_MODIFIER},
-	{245,47, MOD_NO_MODIFIER}, //ő
+	{145,47, MOD_NO_MODIFIER}, //ő
 	{186,48, MOD_NO_MODIFIER}, //ú
-	{251,49, MOD_NO_MODIFIER}, //ű
+	{177,49, MOD_NO_MODIFIER}, //ű
 	{'Q',20, MOD_SHIFT_LEFT},
 	{'W',26, MOD_SHIFT_LEFT},
 	{'E',8, MOD_SHIFT_LEFT},
@@ -98,9 +101,9 @@ static Keys hunKeys[NumberOfHunKeys] = {
 	{'I',12, MOD_SHIFT_LEFT},
 	{'O',18, MOD_SHIFT_LEFT},
 	{'P',19, MOD_SHIFT_LEFT},
-	{0xd5,47, MOD_SHIFT_LEFT}, //Ő
+	{144,47, MOD_SHIFT_LEFT}, //Ő
 	{154,48, MOD_SHIFT_LEFT}, //Ú
-	{0xdb,49, MOD_SHIFT_LEFT}, //Ű
+	{176,49, MOD_SHIFT_LEFT}, //Ű
 	{'\\',20, MOD_ALT_RIGHT},
 	{'|',26, MOD_ALT_RIGHT},
 	{132,8, MOD_ALT_RIGHT}, //Ä
@@ -251,21 +254,24 @@ static Keys engKeys[NumberOfEngKeys] = {
 	{'\0',0, MOD_NO_MODIFIER}, //END OF STRUCT
 };
 
-/*stores the selected keyboard, english by default*/
-/*static Keys *selectedKeyboard = engKeys;
-static uint8_t Length = NumberOfEngKeys;
-static uint8_t langID = ENG;*/
-
+/* stores the selected keyboard,
+   hungarian by default */
 static Keys *selectedKeyboard = hunKeys;
 static uint8_t Length = NumberOfHunKeys;
 static uint8_t langID = HUN;
+/* USER PRIVATE TYPES END */
 
+/* USER CODE BEGIN */
 /* Converts and sends the file
    through USB*/
 USBD_StatusTypeDef Send_Keystrokes(const uint8_t *buff) {
 	for (uint16_t i = 0; buff[i] != '~'; i++) {
 		if(buff[i] == '\r'){
 			continue; // ENTER key consists stored as two chars: '\n' and '\r', we only send ENTER once
+		}
+
+		if(buff[i] == 195 || buff[i] == 197){
+			continue; // these characters signal that the next character is special
 		}
 
 		if(Convert_char_to_Keystroke(buff[i]) != USBD_OK){
@@ -307,11 +313,14 @@ static USBD_StatusTypeDef Convert_char_to_Keystroke(uint8_t ascii) {
 		}
 	}
 
+	// There are no matching characters
 	keycodes.MODIFIER = 0;
 	keycodes.KEYCODE1 = 0;
 	return USBD_FAIL;
 }
 
+/* Sets the keyboard language
+   to the given one*/
 uint8_t Set_Keyboard_Language(uint8_t langId) {
 	uint8_t ret = 1;
 
@@ -335,3 +344,4 @@ uint8_t Set_Keyboard_Language(uint8_t langId) {
 
 	return ret;
 }
+/* USER CODE END */

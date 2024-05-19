@@ -9,7 +9,13 @@
 #define INC_MY_KEYBOARD_H_
 
 #include "main.h"
+#include "usbd_def.h"
+/* USER FUNCTION PROTOTYPES BEGIN */
+USBD_StatusTypeDef Send_Keystrokes(const uint8_t *buff);
+uint8_t Set_Keyboard_Language(uint8_t langId);
+/* USER FUNCTION PROTOTYPES END */
 
+/* USER PRIVATE TYPES BEGIN */
 typedef enum{
 	MOD_NO_MODIFIER = 0,
 	MOD_SHIFT_LEFT = 0x02,
@@ -17,8 +23,8 @@ typedef enum{
 }MODIFIER;
 
 typedef enum{
-	ENG = 0,
-	HUN = 1
+	ENG = 'e',
+	HUN = 'h'
 }Language;
 
 typedef struct{
@@ -40,5 +46,6 @@ typedef struct {
 
 #define NumberOfHunKeys 124
 #define NumberOfEngKeys 104
+/* USER PRIVATE TYPES END */
 
 #endif /* INC_MY_KEYBOARD_H_ */

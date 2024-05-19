@@ -56,7 +56,7 @@
 extern uint8_t message;
 extern uint8_t usb_RX_Buff[];
 
-uint8_t command; // command from VCP
+static uint8_t command; // command from VCP
 static uint8_t start = 0; // flag for login
 volatile uint8_t button = 1; // flag for user push button
 /* USER CODE END PV */
@@ -122,8 +122,9 @@ int main(void)
 			command = usb_RX_Buff[0];
 
 			if (!start) {
-				if (Start_Device() == HAL_OK){
-					List_all_commands(); //we list the commands
+				if (Start_Device() == OK){
+					Transmit("\n\rDefault language is Hungarian.");
+					List_all_commands();
 					start++;
 				}
 			} else
@@ -136,6 +137,9 @@ int main(void)
 					break;
 				case 'l':
 					List_all_commands();
+					break;
+				case 'k':
+					Change_keyboard_language();
 					break;
 				default:
 					Transmit("\n\rError: Invalid command!\n\r");
