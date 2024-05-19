@@ -68,6 +68,8 @@ DWORD get_fattime(void)
 }
 
 /* USER CODE BEGIN Application */
+/* Saves the file to Fatfs
+  and to the internal Flash as well */
 FRESULT Fat_Write(const char *filename, const uint8_t *write){
 	if ((ret = Fat_Write_Init(filename, write)) == FR_OK)
 		if (Flash_Write() != HAL_OK) // saves the data in flash as well
@@ -75,6 +77,7 @@ FRESULT Fat_Write(const char *filename, const uint8_t *write){
 	return ret;
 }
 
+/* Saves the file to Fatfs */
 FRESULT Fat_Write_Init(const char *filename, const uint8_t *write){
 	DWORD free_clusters;  // Number of free clusters
 	uint32_t wbytes;     // File write counts
@@ -88,6 +91,7 @@ FRESULT Fat_Write_Init(const char *filename, const uint8_t *write){
 	return ret;
 }
 
+/* Reads the file from Fatfs */
 FRESULT Fat_Read(const char *filename, uint8_t *buff){
 	uint32_t rbytes;     // File read counts
 	if ((ret = f_open(&USERFile, filename, FA_OPEN_EXISTING | FA_READ))
@@ -102,8 +106,8 @@ FRESULT Fat_Read(const char *filename, uint8_t *buff){
 
 }
 
-/* Transmits the name of
-   all files in the Fatfs to the user*/
+/* Transmits all filenames
+   in the Fatfs to the user */
 FRESULT Fat_Read_Filenames(){
 	DIR dir;
 	FILINFO fileinfo;
@@ -122,7 +126,7 @@ FRESULT Fat_Read_Filenames(){
 				continue;
 			}
 		Transmit("\n\r");
-		Transmit((uint8_t*) fileinfo.fname);
+		Transmit((uint8_t*) fileinfo.fname); // Send the name through VCP
 	}
 	Transmit("\n\r");
 

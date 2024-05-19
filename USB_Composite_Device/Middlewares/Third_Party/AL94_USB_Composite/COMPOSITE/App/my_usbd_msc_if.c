@@ -247,7 +247,7 @@ int8_t STORAGE_Read(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16_t blk_l
 int8_t STORAGE_Write(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16_t blk_len)
 {
 	/* USER CODE BEGIN 7 */
-	uint8_t file[4] = { };     // checks whether we wrote a file in Fatfs
+	uint8_t file[4] = { };          // checks whether we wrote a file in Fatfs
 	const uint8_t txt[] = ".txt";   // if file = txt then Fatfs has changed
 	uint8_t name_char = 0;
 	uint8_t filename[13] = { };

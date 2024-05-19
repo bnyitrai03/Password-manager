@@ -9,11 +9,18 @@
 #ifndef SRC_GLOBAL_FUNCTIONS_H_
 #define SRC_GLOBAL_FUNCTIONS_H_
 
+typedef enum{
+	OK = 1,
+	FAILURE = 0
+}Status;
+
 /*    USER FUNCTION PROTOTYPES BEGIN    */
-void Transmit(uint8_t *msg);
+void Transmit(char *msg);
 void List_all_commands();
-HAL_StatusTypeDef Start_Device();
 void Reset();
+void Enter_password();
+void Change_keyboard_language();
+Status Start_Device();
 /*    USER FUNCTION PROTOTYPES END    */
 
 #endif /* SRC_GLOBAL_FUNCTIONS_H_ */
